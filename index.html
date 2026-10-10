@@ -1,11 +1,11 @@
-<!doctype html> 
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#080d13">
   <meta name="color-scheme" content="dark">
-  <title>STAR DUEL v44 - Custom Deck Scroll Fix</title>
+  <title>STAR DUEL v45 - Symmetric Field Resources</title>
   <style>
 :root{
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -450,13 +450,24 @@ body:has(.setup-shell){overflow:hidden}
 .play-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
 .play-guide-card{border:1px solid var(--line);border-radius:16px;padding:16px;background:rgba(255,255,255,.045);text-align:left;cursor:pointer;color:#eef7fb}
 .play-guide-card strong{display:block;font-size:16px;margin-bottom:5px}.play-guide-card span{display:block;color:#9cafbb;font-size:11px;line-height:1.55}
-.opponent-resources-top{margin:0 0 8px;padding:0 8px}
-.opponent-resources-top .field-resources{border-top:0;border-bottom:0;padding:0 2px 2px;justify-content:flex-start}
+.field-resources-wrap{width:100%;min-width:0}
+.field-resources-wrap--above .field-resources{
+  border-top:0;
+  border-bottom:1px solid rgba(255,255,255,.055);
+  padding:1px 6px 5px;
+}
+.field-resources-wrap--below .field-resources{
+  border-top:1px solid rgba(255,255,255,.055);
+  border-bottom:0;
+  padding:5px 6px 1px;
+}
+.field-center--above,.field-center--below{gap:7px}
 @media(max-width:430px){
   .play-guide-grid{grid-template-columns:1fr}
   .debug-seed-wrap{justify-content:flex-end}
   .debug-seed input{width:104px}
-  .opponent-resources-top{padding-left:5px;padding-right:5px}
+  .field-resources-wrap--above .field-resources{padding-left:3px;padding-right:3px}
+  .field-resources-wrap--below .field-resources{padding-left:3px;padding-right:3px}
 }
 
 
@@ -2043,7 +2054,14 @@ function fieldResources(side){
   if(!pursuit&&!development&&!nutrient&&!spell)return '';
   return `<div class="field-resources">${pursuit?`<div class="pursuit-stack"><span class="field-resource-label">追撃</span><div class="pursuit-chips">${pursuit}</div></div>`:''}${development?`<div class="development-stack"><span class="field-resource-label">開拓</span><div class="development-chips">${development}</div></div>`:''}${nutrient}${spell}</div>`;
 }
-function fieldSlots(side,showResources=true){return `<div class="field-center"><div class="field-slots">${[0,1,2].map(i=>boardSlot(side,i)).join('')}</div>${showResources?fieldResources(side):''}</div>`;}
+function fieldSlots(side,resourcePosition='below'){
+  const resources=fieldResources(side);
+  return `<div class="field-center field-center--${resourcePosition}">
+    ${resourcePosition==='above'&&resources?`<div class="field-resources-wrap field-resources-wrap--above">${resources}</div>`:''}
+    <div class="field-slots">${[0,1,2].map(i=>boardSlot(side,i)).join('')}</div>
+    ${resourcePosition==='below'&&resources?`<div class="field-resources-wrap field-resources-wrap--below">${resources}</div>`:''}
+  </div>`;
+}
 function graveModalHtml(){
   if(!graveOpenSide||!state)return '';
   const p=state.players[graveOpenSide], title=graveOpenSide==='human'?'自分の墓地':'相手の墓地', cards=p.grave_cards||[];
@@ -2331,7 +2349,7 @@ function setupHtml(){
   const normal=ATTRIBUTES.map(a=>`<option value="${a}">${ATTRIBUTE_LABELS[a]}</option>`).join('');
   const options=`${normal}<option value="ai_special">★ AIスペシャル</option><option value="custom">カスタムデッキ</option>`;
   return `<main class="setup-shell"><section class="setup-card">
-    <div class="brand-lockup"><span class="brand-kicker">PHASE 1 · v44 UI</span><h1>STAR DUEL</h1></div>
+    <div class="brand-lockup"><span class="brand-kicker">PHASE 1 · v45 UI</span><h1>STAR DUEL</h1></div>
     <div class="setup-grid setup-grid--compact">
       <label><span>あなたのデッキ</span><select id="humanAttr">${options}</select></label>
       <label><span>CPUデッキ</span><select id="cpuAttr">${options}</select></label>
@@ -2403,9 +2421,8 @@ function gameHtml(){
       ${tutorialPanelHtml()}
       ${inlineChoiceBanner('board')}
       <section class="board${inlineChoice?.where==='board'?' inline-choice-mode':''}">
-        ${fieldResources('cpu')?`<div class="opponent-resources-top">${fieldResources('cpu')}</div>`:''}
-        <div class="field-row field-row--opponent">${deckHud(c,'cpu')}${fieldSlots('cpu',false)}${powerHud(c)}</div>
-        <div class="field-row field-row--human">${powerHud(h)}${fieldSlots('human',true)}${deckHud(h,'human')}</div>
+        <div class="field-row field-row--opponent">${deckHud(c,'cpu')}${fieldSlots('cpu','above')}${powerHud(c)}</div>
+        <div class="field-row field-row--human">${powerHud(h)}${fieldSlots('human','below')}${deckHud(h,'human')}</div>
       </section>
       <section class="action-zone${inlineChoice?.where==='hand'?' inline-choice-mode':''}">${inlineChoiceBanner('hand')}<div class="action-zone__head"><div><span class="eyebrow">YOUR HAND</span><h3>手札</h3></div><div class="hand-action-buttons">${selectedSpell?`<button type="button" class="hand-spell-button" id="handSpell" ${busy?'disabled':''}>呪文を唱える</button>`:''}<button type="button" class="hand-draw-button" id="handDraw" ${(!action('draw')||busy)?'disabled':''}><span class="draw-card-icon"></span><span>1枚ドロー</span></button></div></div>
         <div class="hand-scroll">${hand}</div>
